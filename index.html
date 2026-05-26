@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>재고·판매·예약 관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#222;font-size:15px}
+.header{background:#fff;border-bottom:1px solid #e5e5e5;padding:14px 16px;position:sticky;top:0;z-index:10}
+.header h1{font-size:17px;font-weight:600;color:#222}
+.tabs{display:flex;gap:6px;padding:12px 16px;background:#fff;border-bottom:1px solid #e5e5e5;overflow-x:auto;position:sticky;top:53px;z-index:9}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:13px;color:#666;white-space:nowrap}
+.tab.active{background:#222;color:#fff;border-color:#222}
+.section{display:none;padding:16px}
+.section.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.metric{background:#fff;border-radius:12px;padding:14px;border:1px solid #eee}
+.metric-label{font-size:12px;color:#888;margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:600;color:#222}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #eee}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card-title{font-size:15px;font-weight:600}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:12px;color:#666;margin-bottom:4px;font-weight:500}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #ddd;background:#fff;color:#222;font-size:14px}
+.form-group textarea{height:70px;resize:none}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;padding:13px;border-radius:12px;border:none;background:#222;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px}
+.btn-outline{background:#fff;color:#222;border:1px solid #ddd}
+.btn-sm{width:auto;padding:6px 12px;font-size:12px;border-radius:8px;margin-top:0}
+.btn-danger{background:#fee2e2;color:#dc2626;border:none}
+.btn-success{background:#dcfce7;color:#16a34a;border:none}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:#dcfce7;color:#16a34a}
+.badge-amber{background:#fef9c3;color:#ca8a04}
+.badge-red{background:#fee2e2;color:#dc2626}
+.badge-blue{background:#dbeafe;color:#2563eb}
+.item-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #f0f0f0;flex-wrap:wrap}
+.item-row:last-child{border-bottom:none}
+.profit-pos{color:#16a34a;font-weight:600}
+.profit-neg{color:#dc2626;font-weight:600}
+.empty{text-align:center;padding:2rem;color:#aaa;font-size:14px}
+.res-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #eee}
+.res-name{font-size:15px;font-weight:600;margin-bottom:2px}
+.res-contact{font-size:12px;color:#888;margin-bottom:8px}
+.res-info{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;color:#666;margin-bottom:8px}
+.res-info span b{color:#222}
+.res-memo{font-size:12px;color:#666;background:#f9f9f9;padding:8px 10px;border-radius:8px;margin-bottom:8px}
+.res-actions{display:flex;gap:6px;flex-wrap:wrap}
+.filter-bar{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-btn{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1px solid #ddd;background:#fff;font-size:13px;color:#666;cursor:pointer}
+.filter-btn.active{background:#222;color:#fff;border-color:#222}
+.sec-title{font-size:16px;font-weight:600;margin-bottom:12px}
+.detail-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;color:#666;margin-top:8px}
+.detail-row span b{color:#222}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📦 재고·판매·예약 관리</h1>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('dashboard',this)">대시보드</button>
+  <button class="tab" onclick="showTab('reservations',this)">예약</button>
+  <button class="tab" onclick="showTab('inventory',this)">재고</button>
+  <button class="tab" onclick="showTab('sales',this)">판매기록</button>
+  <button class="tab" onclick="showTab('add-item',this)">품목추가</button>
+  <button class="tab" onclick="showTab('add-sale',this)">판매등록</button>
+  <button class="tab" onclick="showTab('add-res',this)">예약등록</button>
+</div>
+
+<div id="dashboard" class="section active">
+  <div class="cards" id="metrics"></div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">대기중인 예약</span></div>
+    <div id="dash-res"></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">최근 판매</span></div>
+    <div id="dash-sales"></div>
+  </div>
+</div>
+
+<div id="reservations" class="section">
+  <div class="sec-title">예약 목록</div>
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterRes('all',this)">전체</button>
+    <button class="filter-btn" onclick="filterRes('대기',this)">대기중</button>
+    <button class="filter-btn" onclick="filterRes('완료',this)">완료</button>
+    <button class="filter-btn" onclick="filterRes('취소',this)">취소</button>
+  </div>
+  <div id="res-list"></div>
+</div>
+
+<div id="inventory" class="section">
+  <div class="sec-title">재고 현황</div>
+  <div id="inv-list"></div>
+</div>
+
+<div id="sales" class="section">
+  <div class="sec-title">판매 기록</div>
+  <div id="sales-list"></div>
+</div>
+
+<div id="add-item" class="section">
+  <div class="card">
+    <div class="card-header"><span class="card-title">새 품목 추가</span></div>
+    <div class="form-group"><label>품목명</label><input id="i-name" placeholder="예: 경추베개 50x70 2개세트"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>카테고리</label>
+        <select id="i-cat"><option>베개</option><option>이불</option><option>침구세트</option><option>홈웨어</option><option>기타</option></select>
+      </div>
+      <div class="form-group"><label>재고 수량</label><input id="i-stock" type="number" placeholder="0"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>매입가 (원)</label><input id="i-cost" type="number" placeholder="0"/></div>
+      <div class="form-group"><label>배송료 (원)</label><input id="i-ship" type="number" placeholder="0"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>판매가 (원)</label><input id="i-price" type="number" placeholder="0"/></div>
+      <div class="form-group"><label>매입처</label><input id="i-src" placeholder="예: 1688"/></div>
+    </div>
+    <div class="form-group"><label>메모</label><input id="i-memo" placeholder="특이사항"/></div>
+    <button class="btn" onclick="addItem()">품목 추가</button>
+  </div>
+</div>
+
+<div id="add-sale" class="section">
+  <div class="card">
+    <div class="card-header"><span class="card-title">판매 등록</span></div>
+    <div class="form-group"><label>품목</label><select id="s-item" onchange="fillPrice()"></select></div>
+    <div class="form-row">
+      <div class="form-group"><label>수량</label><input id="s-qty" type="number" value="1" min="1"/></div>
+      <div class="form-group"><label>실제 판매가 (원)</label><input id="s-price" type="number" placeholder="0"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>채널</label>
+        <select id="s-ch"><option>당근마켓</option><option>쿠팡</option><option>네이버</option><option>직거래</option><option>기타</option></select>
+      </div>
+      <div class="form-group"><label>날짜</label><input id="s-date" type="date"/></div>
+    </div>
+    <div class="form-group"><label>메모</label><input id="s-memo" placeholder="예약자명, 특이사항"/></div>
+    <button class="btn" onclick="addSale()">판매 등록</button>
+  </div>
+</div>
+
+<div id="add-res" class="section">
+  <div class="card">
+    <div class="card-header"><span class="card-title">예약 등록</span></div>
+    <div class="form-row">
+      <div class="form-group"><label>예약자 닉네임</label><input id="r-name" placeholder="예: 당근 하늘이"/></div>
+      <div class="form-group"><label>연락처 / 당근ID</label><input id="r-contact" placeholder="예: @하늘이123"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>품목</label><select id="r-item"></select></div>
+      <div class="form-group"><label>수량</label><input id="r-qty" type="number" value="1" min="1"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>약속 날짜</label><input id="r-date" type="date"/></div>
+      <div class="form-group"><label>약속 시간</label><input id="r-time" type="time"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>채널</label>
+        <select id="r-ch"><option>당근마켓</option><option>쿠팡</option><option>직거래</option><option>기타</option></select>
+      </div>
+      <div class="form-group"><label>선입금 (원)</label><input id="r-deposit" type="number" placeholder="0"/></div>
+    </div>
+    <div class="form-group"><label>메모</label><textarea id="r-memo" placeholder="특이사항, 요청사항 등"></textarea></div>
+    <button class="btn" onclick="addRes()">예약 등록</button>
+  </div>
+</div>
+
+<script>
+let items=JSON.parse(localStorage.getItem('inv_items')||'[]');
+let sales=JSON.parse(localStorage.getItem('inv_sales')||'[]');
+let reservations=JSON.parse(localStorage.getItem('inv_res')||'[]');
+let resFilter='all';
+
+function save(){
+  localStorage.setItem('inv_items',JSON.stringify(items));
+  localStorage.setItem('inv_sales',JSON.stringify(sales));
+  localStorage.setItem('inv_res',JSON.stringify(reservations));
+}
+
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='dashboard')renderDash();
+  if(id==='reservations')renderRes();
+  if(id==='inventory')renderInv();
+  if(id==='sales')renderSales();
+  if(id==='add-sale')renderSaleSelect();
+  if(id==='add-res')renderResSelect();
+}
+
+function filterRes(f,btn){
+  resFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRes();
+}
+
+function addItem(){
+  const name=document.getElementById('i-name').value.trim();
+  if(!name)return alert('품목명을 입력해주세요');
+  items.push({id:Date.now(),name,category:document.getElementById('i-cat').value,cost:parseInt(document.getElementById('i-cost').value)||0,source:document.getElementById('i-src').value,shipping:parseInt(document.getElementById('i-ship').value)||0,price:parseInt(document.getElementById('i-price').value)||0,stock:parseInt(document.getElementById('i-stock').value)||0,memo:document.getElementById('i-memo').value});
+  save();
+  ['i-name','i-cost','i-src','i-ship','i-price','i-stock','i-memo'].forEach(id=>document.getElementById(id).value='');
+  alert('품목 추가 완료!');
+}
+
+function addSale(){
+  const itemId=parseInt(document.getElementById('s-item').value);
+  const item=items.find(i=>i.id===itemId);
+  if(!item)return alert('품목을 선택해주세요');
+  const qty=parseInt(document.getElementById('s-qty').value)||1;
+  if(item.stock<qty)return alert('재고 부족!');
+  const price=parseInt(document.getElementById('s-price').value)||item.price;
+  const totalCost=(item.cost+item.shipping)*qty;
+  const profit=(price*qty)-totalCost;
+  sales.unshift({id:Date.now(),itemId,itemName:item.name,qty,price,totalRevenue:price*qty,totalCost,profit,channel:document.getElementById('s-ch').value,date:document.getElementById('s-date').value||new Date().toISOString().split('T')[0],memo:document.getElementById('s-memo').value});
+  item.stock-=qty;
+  save();
+  document.getElementById('s-qty').value=1;
+  document.getElementById('s-memo').value='';
+  alert('판매 등록 완료!\n수익: '+profit.toLocaleString()+'원');
+}
+
+function addRes(){
+  const name=document.getElementById('r-name').value.trim();
+  if(!name)return alert('예약자명을 입력해주세요');
+  const itemId=parseInt(document.getElementById('r-item').value);
+  const item=items.find(i=>i.id===itemId);
+  reservations.unshift({id:Date.now(),name,contact:document.getElementById('r-contact').value,itemId,itemName:item?item.name:'',qty:parseInt(document.getElementById('r-qty').value)||1,date:document.getElementById('r-date').value,time:document.getElementById('r-time').value,channel:document.getElementById('r-ch').value,deposit:parseInt(document.getElementById('r-deposit').value)||0,memo:document.getElementById('r-memo').value,status:'대기'});
+  save();
+  ['r-name','r-contact','r-deposit','r-memo'].forEach(id=>document.getElementById(id).value='');
+  alert('예약 등록 완료!');
+}
+
+function fillPrice(){
+  const itemId=parseInt(document.getElementById('s-item').value);
+  const item=items.find(i=>i.id===itemId);
+  if(item)document.getElementById('s-price').value=item.price;
+}
+
+function renderSaleSelect(){
+  const sel=document.getElementById('s-item');
+  sel.innerHTML=items.length?items.map(i=>`<option value="${i.id}">${i.name} (재고 ${i.stock}개)</option>`).join(''):'<option>품목 없음</option>';
+  fillPrice();
+}
+
+function renderResSelect(){
+  const sel=document.getElementById('r-item');
+  sel.innerHTML=items.length?items.map(i=>`<option value="${i.id}">${i.name}</option>`).join(''):'<option>품목 없음</option>';
+  document.getElementById('r-date').value=new Date().toISOString().split('T')[0];
+}
+
+function updateResStatus(id,status){
+  const r=reservations.find(x=>x.id===id);
+  if(r){r.status=status;save();renderRes();}
+}
+
+function deleteRes(id){
+  if(confirm('예약을 삭제할까요?')){reservations=reservations.filter(x=>x.id!==id);save();renderRes();}
+}
+
+function addStock(id){
+  const n=parseInt(prompt('추가할 재고 수량:'));
+  if(n>0){items.find(i=>i.id===id).stock+=n;save();renderInv();}
+}
+
+function delItem(id){
+  if(confirm('품목을 삭제할까요?')){items=items.filter(i=>i.id!==id);save();renderInv();}
+}
+
+function renderDash(){
+  const totalRevenue=sales.reduce((s,x)=>s+x.totalRevenue,0);
+  const totalProfit=sales.reduce((s,x)=>s+x.profit,0);
+  const totalStock=items.reduce((s,i)=>s+i.stock,0);
+  const pending=reservations.filter(r=>r.status==='대기').length;
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">총 매출</div><div class="metric-value">${totalRevenue.toLocaleString()}원</div></div>
+    <div class="metric"><div class="metric-label">총 수익</div><div class="metric-value ${totalProfit>=0?'profit-pos':'profit-neg'}">${totalProfit.toLocaleString()}원</div></div>
+    <div class="metric"><div class="metric-label">잔여 재고</div><div class="metric-value">${totalStock}개</div></div>
+    <div class="metric"><div class="metric-label">대기 예약</div><div class="metric-value">${pending}건</div></div>`;
+  const pendingRes=reservations.filter(r=>r.status==='대기').slice(0,4);
+  document.getElementById('dash-res').innerHTML=pendingRes.length?pendingRes.map(r=>`
+    <div class="item-row">
+      <span style="flex:1;font-size:14px;font-weight:600">${r.name}</span>
+      <span class="badge badge-blue">${r.channel}</span>
+      <span style="font-size:12px;color:#888">${r.itemName} ${r.qty}개</span>
+      <span style="font-size:12px;color:#888">${r.date} ${r.time}</span>
+    </div>`).join(''):'<div class="empty">대기 예약 없음</div>';
+  const recent=sales.slice(0,4);
+  document.getElementById('dash-sales').innerHTML=recent.length?recent.map(s=>`
+    <div class="item-row">
+      <span style="flex:1;font-size:14px">${s.itemName}</span>
+      <span class="badge badge-green">${s.channel}</span>
+      <span class="profit-pos">${s.profit.toLocaleString()}원</span>
+    </div>`).join(''):'<div class="empty">판매 기록 없음</div>';
+}
+
+function renderRes(){
+  const list=resFilter==='all'?reservations:reservations.filter(r=>r.status===resFilter);
+  document.getElementById('res-list').innerHTML=list.length?list.map(r=>`
+    <div class="res-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="res-name">${r.name}</div>
+          ${r.contact?`<div class="res-contact">${r.contact}</div>`:''}
+        </div>
+        <span class="badge ${r.status==='대기'?'badge-amber':r.status==='완료'?'badge-green':'badge-red'}">${r.status}</span>
+      </div>
+      <div class="res-info">
+        <span><b>${r.itemName}</b> ${r.qty}개</span>
+        <span>채널: <b>${r.channel}</b></span>
+        <span>날짜: <b>${r.date}</b></span>
+        <span>시간: <b>${r.time||'-'}</b></span>
+        ${r.deposit?`<span>선입금: <b>${r.deposit.toLocaleString()}원</b></span>`:''}
+      </div>
+      ${r.memo?`<div class="res-memo">${r.memo}</div>`:''}
+      <div class="res-actions">
+        ${r.status==='대기'?`<button class="btn btn-sm btn-success" onclick="updateResStatus(${r.id},'완료')">완료</button><button class="btn btn-sm btn-outline" onclick="updateResStatus(${r.id},'취소')">취소</button>`:''}
+        <button class="btn btn-sm btn-danger" onclick="deleteRes(${r.id})">삭제</button>
+      </div>
+    </div>`).join(''):'<div class="empty">예약이 없어요</div>';
+}
+
+function renderInv(){
+  document.getElementById('inv-list').innerHTML=items.length?items.map(i=>`
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">${i.name}</span>
+        <span class="badge ${i.stock>3?'badge-green':i.stock>0?'badge-amber':'badge-red'}">${i.stock>0?'재고 '+i.stock+'개':'품절'}</span>
+      </div>
+      <div class="detail-row">
+        <span>카테고리: <b>${i.category}</b></span>
+        <span>매입처: <b>${i.source||'-'}</b></span>
+        <span>매입가: <b>${i.cost.toLocaleString()}원</b></span>
+        <span>배송료: <b>${i.shipping.toLocaleString()}원</b></span>
+        <span>판매가: <b>${i.price.toLocaleString()}원</b></span>
+        <span>마진: <b class="${(i.price-i.cost-i.shipping)>=0?'profit-pos':'profit-neg'}">${(i.price-i.cost-i.shipping).toLocaleString()}원</b></span>
+      </div>
+      ${i.memo?`<div style="margin-top:8px;font-size:12px;color:#888">${i.memo}</div>`:''}
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <button class="btn btn-sm btn-outline" onclick="addStock(${i.id})">재고 추가</button>
+        <button class="btn btn-sm btn-danger" onclick="delItem(${i.id})">삭제</button>
+      </div>
+    </div>`).join(''):'<div class="empty">품목을 먼저 추가해주세요</div>';
+}
+
+function renderSales(){
+  document.getElementById('sales-list').innerHTML=sales.length?sales.map(s=>`
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">${s.itemName}</span>
+        <span class="badge badge-green">${s.channel}</span>
+      </div>
+      <div class="detail-row">
+        <span>수량: <b>${s.qty}개</b></span>
+        <span>판매가: <b>${s.price.toLocaleString()}원</b></span>
+        <span>매출: <b>${s.totalRevenue.toLocaleString()}원</b></span>
+        <span>원가: <b>${s.totalCost.toLocaleString()}원</b></span>
+        <span>수익: <b class="${s.profit>=0?'profit-pos':'profit-neg'}">${s.profit.toLocaleString()}원</b></span>
+        <span>날짜: <b>${s.date}</b></span>
+      </div>
+      ${s.memo?`<div style="margin-top:6px;font-size:12px;color:#888">${s.memo}</div>`:''}
+    </div>`).join(''):'<div class="empty">판매 기록이 없어요</div>';
+}
+
+document.getElementById('s-date').value=new Date().toISOString().split('T')[0];
+renderDash();
+</script>
+</body>
+</html>
